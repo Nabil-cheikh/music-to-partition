@@ -4,7 +4,7 @@
     <!-- Upload section -->
     <div class="upload-section">
       <label for="fileUpload">Upload the music you want to convert into a partition here :</label>
-      <input type="file" id="fileUpload" accept=".wav" @change="handleFileUpload"/>
+      <input type="file" id="fileUpload" accept=".wav,.mp3,.aac,.m4a" @change="handleFileUpload"/>
     </div>
 
     <!-- Analysis -->
@@ -40,6 +40,7 @@
 
 <script>
 // import PdfThumbnail from './PdfThumbnail.vue';
+import axios from 'axios';
 
 export default {
   name: 'Home',
@@ -55,33 +56,40 @@ export default {
     handleFileUpload(event) {
       const file = event.target.files[0];
       console.log(event)
-      if (file && file.type == 'audio/x-wav') {
+      if (file && (file.type === 'audio/x-wav' || file.type === 'audio/mpeg' || file.type === 'audio/mp3' || file.type === 'audio/aac' || file.type === 'audio/x-m4a')) {
         this.selectedFile = file;
       } else {
-        alert('Veuillez sélectionner un fichier au format WAV.');
+        alert('Veuillez sélectionner un fichier au format approprié (WAV, MP3, AAC ou M4A)');
         event.target.value = null;
         this.selectedFile = null;
       }
     },
 
-    onAnalyse() {
+    async onAnalyse() {
       this.analysisInProgress = true;
 
-      // Simulated generation
-      setTimeout(() => {
-        // Here it should give partition files to download
-        this.partitions = [
-          {
-            instrument: 'Piano',
-            pdfSrc: '/data/HymnealaJoiePartition.pdf'
-          },
-          {
-            instrument: 'Violin',
-            pdfSrc: '/data/ViolinConcertoPartition.pdf'
+      try {
+        // Data preparation
+        const formData = new FormData();
+        formData.append('file', this.selectedFile);
+
+        // Call to FastAPI endpoint
+        const response = await axios.post('http://localhost:8000/api/upload/', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
           }
-        ]
+        });
+
+        // If everythhing is alright, we can  get back partitions sent by back-end
+        this.partitions = response.data.partitions;
+        console.log('Partitions reçues :', this.partitions);
+
+      } catch(error) {
+        console.log('Error during analysis :', error);
+        alert('An error occured while uploading or while analysing.');
+      } finally {
         this.analysisInProgress = false;
-      }, 2000);
+      }
     }
   }
 }

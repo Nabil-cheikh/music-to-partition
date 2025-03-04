@@ -2,3 +2,9 @@ node_modules
 data
 .DS_Store
 package-lock.json
+
+# Back-end
+back-end/.env
+back-end/notebook.ipynb
+back-end/uploads
+back-end/**/__pycache__

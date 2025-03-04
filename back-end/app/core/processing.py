@@ -5,7 +5,7 @@ def process_audio_file(file_path: str):
     """
     # Exemple de résultat : deux partitions, une pour Piano et une pour Saxophone.
     results = [
-        {"instrument": "Piano", "notes": ["C4", "E4", "G4"]},
-        {"instrument": "Saxophone", "notes": ["A3", "D4", "F4"]}
+        {"instrument": "Piano", "notes": ["C4", "E4", "G4"], "pdfSrc": "data/HymnealaJoiePartition.pdf"},
+        {"instrument": "Saxophone", "notes": ["A3", "D4", "F4"], "pdfSrc": "data/ViolinConcertoPartition.pdf"}
     ]
     return results
