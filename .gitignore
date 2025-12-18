@@ -1,10 +1,13 @@
-node_modules
-data
-.DS_Store
-package-lock.json
+front-end/node_modules
+front-end/data
+front-end/.DS_Store
+front-end/package-lock.json
 
 # Back-end
 back-end/.env
 back-end/notebook.ipynb
 back-end/uploads
 back-end/**/__pycache__
+
+
+.DS_Store

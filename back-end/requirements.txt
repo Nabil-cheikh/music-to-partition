@@ -1,9 +1,7 @@
 fastapi
 uvicorn
-python-multipart
 librosa
 matplotlib
-numpy==1.26.4
 standard-aifc
 standard-sunau
-git+https://github.com/CarlGao4/demucs.git@4.1.0-update
+python-multipart
