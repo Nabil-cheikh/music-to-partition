@@ -7,7 +7,7 @@ function PdfViewer({ url }) {
         </div>
         <iframe
           src={url}
-          className="w-full h-[800px]"
+          className="w-full h-200"
           title="Generated Sheet Music"
         />
       </div>
