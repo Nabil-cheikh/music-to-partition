@@ -1,10 +1,8 @@
 import { useState } from "react";
-import UploadedFile from "./UploadedFile";
 
-function UploadButton() {
+function UploadButton({ uploadedFile, setUploadedFile }) {
   const [isDragging, setIsDragging] = useState(false);
   const [isInvalidFile, setIsInvalidFile] = useState(false);
-  const [uploadedFile, setUploadedFile] = useState(null);
 
   const isValidAudioType = (type) => {
     const validTypes = ['audio/wav', 'audio/mpeg', 'audio/mp3', 'audio/x-wav'];
@@ -106,9 +104,6 @@ function UploadButton() {
         </label>
       </div>
 
-      {uploadedFile && (
-        <UploadedFile file={uploadedFile} />
-      )}
     </div>
   )
 }
