@@ -1,148 +1,80 @@
 import librosa as lr
-import numpy as np
-import aifc
+from basic_pitch.inference import predict
 
+VALID_DURATIONS = [4.0, 3.0, 2.0, 1.5, 1.0, 0.75, 0.5, 0.375, 0.25, 0.125, 0.0625]
+MIN_VELOCITY_THRESHOLD = 0.4
 
-def recognize_notes(
-    file_path: str,
-    fmin_hz: float | None = None,
-    fmax_hz: float | None = None,
-    hop_length: int = 512,
-):
-    """Estimate fundamental frequency (F0) track using pYIN.
+def _quantize_to_nearest(value: float, grid: list) -> float:
+    """Arrondit une durée à la valeur musicale la plus proche"""
+    if value <= 0:
+        return grid[-1]
 
-    Returns arrays aligned per frame: times (s), f0 (Hz, NaN when unvoiced),
-    voiced_flag (bool), voiced_probs ([0,1]).
+    return min(grid, key=lambda d: abs(d - value))
+
+def _quantize_time(raw_time: float, grid_resolution: float = 0.5) -> float:
     """
-    # Preserve the native sampling rate of the file
-    y, sr = lr.load(file_path, sr=None)
+    Quantifie le temps sur une grille musicale.
+    grid_resolution = 0.5 pour des croches, 0.25 pour des doubles croches
+    """
+    return round(raw_time / grid_resolution) * grid_resolution
 
-    # Sensible musical range by default (C2..C7)
-    if fmin_hz is None:
-        fmin_hz = float(lr.note_to_hz("C2"))
-    if fmax_hz is None:
-        fmax_hz = float(lr.note_to_hz("C7"))
+def _seconds_to_quarter_length(seconds: float, bpm: int) -> float:
+    return seconds * (bpm / 60)
 
-    f0_hz, voiced_flag, voiced_probs = lr.pyin(
-        y,
-        fmin=fmin_hz,
-        fmax=fmax_hz,
-        sr=sr,
-        hop_length=hop_length,
-    )
-
-    times_s = lr.times_like(f0_hz, sr=sr, hop_length=hop_length)
-    return times_s, f0_hz, voiced_flag, voiced_probs, sr
+def _deduplicate_notes(notes: list) -> list:
+    """
+    Supprime les doublons : si plusieurs notes ont le même time et pitch,
+    on garde celle avec la plus haute vélocité.
+    """
+    best_notes = {}
+    for n in notes:
+        key = (n["time"], n["note"])
+        if key not in best_notes or n["velocity"] > best_notes[key]["velocity"]:
+            best_notes[key] = n
+    return list(best_notes.values())
 
 
 def recognize_notes_structured(
     file_path: str,
-    fmin_hz: float | None = None,
-    fmax_hz: float | None = None,
-    hop_length: int = 512,
-    min_voiced_prob: float = 0.5,
+    min_note_duration: float = 0.05,
 ):
     """Analyze audio file and return structured note data with BPM.
 
     Returns:
         dict: {
-            'bpm': float,
+            'bpm': int,
             'offset': float,
             'notes': list of dicts with frame, time, note, and duration
             'frame_duration': duration of each frame in seconds
         }
     """
-    # Load audio
     y, sr = lr.load(file_path, sr=None)
+    tempo, beat_frames = lr.beat.beat_track(y=y, sr=sr)
+    bpm = int(tempo)
+    offset = lr.frames_to_time(beat_frames[0], sr=sr) if len(beat_frames) > 0 else 0.0
 
-    # Estimate BPM and beat frames
-    tempo, beat_frames = lr.beat.beat_track(y=y, sr=sr, hop_length=hop_length)
+    _, _, note_events = predict(file_path)
 
-    # Calculate offset (time of first beat, or 0 if no beats detected)
-    if len(beat_frames) > 0:
-        offset = lr.frames_to_time(beat_frames[0], sr=sr, hop_length=hop_length)
-    else:
-        offset = 0.0
-
-    # Sensible musical range by default (C2..C7)
-    if fmin_hz is None:
-        fmin_hz = float(lr.note_to_hz("C2"))
-    if fmax_hz is None:
-        fmax_hz = float(lr.note_to_hz("C7"))
-
-    # Extract pitch with pYIN
-    f0_hz, voiced_flag, voiced_probs = lr.pyin(
-        y,
-        fmin=fmin_hz,
-        fmax=fmax_hz,
-        sr=sr,
-        hop_length=hop_length,
-    )
-
-    times_s = lr.times_like(f0_hz, sr=sr, hop_length=hop_length)
-    frame_duration = hop_length / sr
-
-    # Detect note onsets (attaques de notes)
-    onset_frames = lr.onset.onset_detect(
-        y=y,
-        sr=sr,
-        hop_length=hop_length,
-        backtrack=True
-    )
-
-    # Group consecutive frames with the same note into segments
     notes_list = []
-    current_note = None
-    current_frame_start = None
-    current_time_start = None
+    for start, end, pitch_midi, amplitude, _ in note_events:
+        duration_sec = end - start
+        if duration_sec >= min_note_duration and amplitude >= MIN_VELOCITY_THRESHOLD:
+            raw_quarter_length = _seconds_to_quarter_length(duration_sec, bpm)
+            aligned_start = max(0, start-offset)
+            raw_offset = _seconds_to_quarter_length(aligned_start, bpm)
+            notes_list.append({
+                "time": _quantize_time(raw_offset, 0.5),
+                "note": lr.midi_to_note(pitch_midi),
+                "duration": _quantize_to_nearest(raw_quarter_length, VALID_DURATIONS),
+                "velocity": float(amplitude)
+            })
 
-    for i, (freq, is_voiced, prob, time) in enumerate(zip(f0_hz, voiced_flag, voiced_probs, times_s)):
-        if is_voiced and prob >= min_voiced_prob and not np.isnan(freq):
-            note_name = lr.hz_to_note(freq)
-
-            # Start a new note or continue current one
-            if current_note != note_name:
-                # Save previous note if it exists
-                if current_note is not None:
-                    duration = time - current_time_start
-                    notes_list.append({
-                        "frame": int(current_frame_start),
-                        "time": float(current_time_start),
-                        "note": current_note,
-                        "duration": float(duration)
-                    })
-
-                # Start new note
-                current_note = note_name
-                current_frame_start = i
-                current_time_start = time
-        else:
-            # Silence or unvoiced - end current note
-            if current_note is not None:
-                duration = time - current_time_start
-                notes_list.append({
-                    "frame": int(current_frame_start),
-                    "time": float(current_time_start),
-                    "note": current_note,
-                    "duration": float(duration)
-                })
-                current_note = None
-
-    # Don't forget the last note
-    if current_note is not None:
-        duration = times_s[-1] - current_time_start
-        notes_list.append({
-            "frame": int(current_frame_start),
-            "time": float(current_time_start),
-            "note": current_note,
-            "duration": float(duration)
-        })
+    notes_list = _deduplicate_notes(notes_list)
+    notes_list.sort(key=lambda n: (n["time"], n["note"]))
 
     return {
-        "bpm": float(tempo),
+        "bpm": bpm,
         "offset": float(offset),
         "notes": notes_list,
-        "frame_duration": float(frame_duration),
-        "sample_rate": int(sr),
-        "hop_length": int(hop_length)
+        "sample_rate": int(sr)
     }

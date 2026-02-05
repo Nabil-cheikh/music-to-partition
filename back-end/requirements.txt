@@ -1,7 +1,6 @@
 fastapi
 uvicorn
 librosa
-matplotlib
-standard-aifc
-standard-sunau
 python-multipart
+basic-pitch
+music21
