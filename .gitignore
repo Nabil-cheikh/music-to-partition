@@ -8,6 +8,7 @@ back-end/.env
 back-end/notebook.ipynb
 back-end/uploads
 back-end/**/__pycache__
+back-end/outputs
 
 
 .DS_Store

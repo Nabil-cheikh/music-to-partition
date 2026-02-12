@@ -13,19 +13,26 @@ function Home() {
     setIsGenerating(true);
 
     const formData = new FormData();
-    formData.append('audioFile', uploadedFile);
+    formData.append('file', uploadedFile);
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      const response_notes = await fetch('http://localhost:8000/api/recognize-notes/', {
+        method: 'POST',
+        body: formData
+      });
+      const notes_fetched = await response_notes.json();
 
-      // TODO replace with :
-      // const response = await fetch('http://localhost:5000/generate', {
-      //   method: 'POST',
-      //   body: formData
-      // });
-      // const { pdfUrl } = await response.json();
+      const response_pdf = await fetch('http://localhost:8000/api/generate-sheet/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(notes_fetched)
+      });
+      const pdfBlob = await response_pdf.blob();
+      const pdfUrl = URL.createObjectURL(pdfBlob);
 
-      setPdfUrl('/blank.pdf');
+      setPdfUrl(pdfUrl);
     } catch (error) {
       console.error('Erreur lors de la génération:', error);
       alert('Erreur lors de la génération du PDF');
