@@ -1,6 +1,0 @@
-fastapi
-uvicorn
-librosa
-python-multipart
-basic-pitch
-music21

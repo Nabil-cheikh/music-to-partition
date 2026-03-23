@@ -2,6 +2,7 @@ import os
 import shutil
 from fastapi import APIRouter, File, UploadFile, HTTPException
 from fastapi.responses import FileResponse
+from starlette.background import BackgroundTask
 from core.processing import recognize_notes_structured
 from core.sheet_generator import generate_piano_sheet
 from models.schemas import RecognizeNotesResponse
@@ -47,12 +48,13 @@ async def recognize_notes_endpoint(file: UploadFile = File(...)):
 
 @router.post("/generate-sheet/")
 async def generate_sheet_endpoint(data: RecognizeNotesResponse):
-    """Route temporaire : génère une partition PDF à partir des notes détectées"""
+    """Génère une partition PDF à partir des notes détectées"""
     notes_as_dicts = [n.model_dump() for n in data.notes]
     output_path = generate_piano_sheet(notes_as_dicts, data.bpm)
 
     return FileResponse(
         output_path,
         media_type='application/pdf',
-        filename='partition.pdf'
+        filename='partition.pdf',
+        background=BackgroundTask(os.remove, output_path),
     )

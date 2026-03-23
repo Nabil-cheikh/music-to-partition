@@ -1,10 +1,7 @@
 import re
-import os
+import tempfile
 import uuid
 from music21 import chord
-
-OUTPUT_DIR = "outputs"
-os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 def _extract_octave(note_name: str) -> int:
     """Extrait l'octave d'un nom de note (ex: 'C#5' -> 5)"""
@@ -73,10 +70,13 @@ def generate_piano_sheet(notes_data: list, bpm: int) -> str:
             m21_chord.quarterLength = duration
             left_hand.insert(time, m21_chord)
 
+    right_hand = right_hand.makeMeasures()
+    left_hand = left_hand.makeMeasures()
+
     score.insert(0, right_hand)
     score.insert(0, left_hand)
 
-    base_path = os.path.join(OUTPUT_DIR, str(uuid.uuid4()))
+    base_path = os.path.join(tempfile.gettempdir(), str(uuid.uuid4()))
     score.write('lily.pdf', fp=base_path)
 
     return f"{base_path}.pdf"

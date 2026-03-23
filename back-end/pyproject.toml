@@ -1,0 +1,24 @@
+[project]
+name = "music-to-partition"
+version = "1.0.0"
+description = "Piano music transcription: converts audio files to music sheet PDFs"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "librosa",
+    "python-multipart",
+    "basic-pitch[coreml]==0.4.0",
+    "music21",
+]
+
+[tool.uv]
+environments = [
+    "sys_platform == 'darwin'",
+]
+constraint-dependencies = [
+    "setuptools<82",
+]
+override-dependencies = [
+    "tensorflow-macos>=2.16; sys_platform == 'darwin'",
+]

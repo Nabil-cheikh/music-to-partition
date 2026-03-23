@@ -9,6 +9,9 @@ back-end/notebook.ipynb
 back-end/uploads
 back-end/**/__pycache__
 back-end/outputs
+back-end/.venv
 
 
 .DS_Store
+.vscode
+scripts
