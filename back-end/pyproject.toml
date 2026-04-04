@@ -8,17 +8,21 @@ dependencies = [
     "uvicorn",
     "librosa",
     "python-multipart",
-    "basic-pitch[coreml]==0.4.0",
+    "basic-pitch==0.4.0",
+    "basic-pitch[coreml]==0.4.0; sys_platform == 'darwin'",
     "music21",
+    "onnxruntime>=1.24.4",
 ]
 
 [tool.uv]
 environments = [
     "sys_platform == 'darwin'",
+    "sys_platform == 'linux'",
 ]
 constraint-dependencies = [
     "setuptools<82",
 ]
 override-dependencies = [
+    "tensorflow>=2.16; sys_platform == 'linux'",
     "tensorflow-macos>=2.16; sys_platform == 'darwin'",
 ]

@@ -1,6 +1,9 @@
+import sys
 import librosa as lr
 from basic_pitch import build_icassp_2022_model_path, FilenameSuffix
-ICASSP_2022_MODEL_PATH = build_icassp_2022_model_path(FilenameSuffix.coreml)
+
+_suffix = FilenameSuffix.coreml if sys.platform == "darwin" else FilenameSuffix.onnx
+ICASSP_2022_MODEL_PATH = build_icassp_2022_model_path(_suffix)
 from basic_pitch.inference import predict
 
 VALID_DURATIONS = [4.0, 3.0, 2.0, 1.5, 1.0, 0.75, 0.5, 0.375, 0.25]

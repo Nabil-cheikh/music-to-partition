@@ -1,4 +1,6 @@
 import re
+import shutil
+import os
 import tempfile
 import uuid
 from music21 import chord
@@ -19,7 +21,9 @@ def generate_piano_sheet(notes_data: list, bpm: int) -> str:
     from music21 import environment, stream, instrument, clef, meter, tempo, note
 
     us = environment.UserSettings()
-    us['lilypondPath'] = '/opt/homebrew/bin/lilypond'
+    lilypond_path = shutil.which('lilypond')
+    if lilypond_path:
+        us['lilypondPath'] = lilypond_path
 
     score = stream.Score()
 
