@@ -1,9 +1,7 @@
 import { useState } from 'react';
 import GenerateButton from './GenerateButton';
-import PdfViewer from './PdfViewer';
 
-function GenerationSection({ file }) {
-  const [pdfUrl, setPdfUrl] = useState(null);
+function GenerationSection({ file, onPdfGenerated }) {
   const [isGenerating, setIsGenerating] = useState(false);
 
   const handleGenerate = async () => {
@@ -29,7 +27,7 @@ function GenerationSection({ file }) {
       const pdfBlob = await response_pdf.blob();
       const pdfUrl = URL.createObjectURL(pdfBlob);
 
-      setPdfUrl(pdfUrl);
+      onPdfGenerated(pdfUrl);
     } catch (error) {
       console.error('Erreur lors de la génération:', error);
       alert('Erreur lors de la génération du PDF');
@@ -39,10 +37,7 @@ function GenerationSection({ file }) {
   };
 
   return (
-    <>
-      <GenerateButton onClick={handleGenerate} isGenerating={isGenerating} />
-      {pdfUrl && <PdfViewer url={pdfUrl} />}
-    </>
+    <GenerateButton onClick={handleGenerate} isGenerating={isGenerating} />
   );
 }
 
