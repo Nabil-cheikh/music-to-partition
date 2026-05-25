@@ -5,7 +5,13 @@ import pretty_midi
 import pytest
 from scipy.io import wavfile
 
-SOUNDFONT_PATH = "/usr/share/sounds/sf2/FluidR3_GM.sf2"
+_SOUNDFONT_CANDIDATES = [
+    "/usr/share/sounds/sf2/FluidR3_GM.sf2",
+    "/usr/share/sounds/sf2/TimGM6mb.sf2",
+    "/usr/share/sounds/sf2/default-GM.sf2",
+    os.path.join(os.path.dirname(pretty_midi.__file__), "TimGM6mb.sf2"),
+]
+SOUNDFONT_PATH = next(p for p in _SOUNDFONT_CANDIDATES if os.path.exists(p))
 SAMPLE_RATE = 44100
 
 

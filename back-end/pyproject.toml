@@ -19,6 +19,9 @@ dependencies = [
     "pytest",
 ]
 
+[tool.pytest.ini_options]
+pythonpath = ["."]
+
 [tool.uv]
 environments = [
     "sys_platform == 'darwin'",
