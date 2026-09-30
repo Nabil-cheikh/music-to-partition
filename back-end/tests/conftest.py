@@ -6,12 +6,13 @@ import pytest
 from scipy.io import wavfile
 
 _SOUNDFONT_CANDIDATES = [
+    os.environ.get("SOUNDFONT_PATH", ""),
     "/usr/share/sounds/sf2/FluidR3_GM.sf2",
     "/usr/share/sounds/sf2/TimGM6mb.sf2",
     "/usr/share/sounds/sf2/default-GM.sf2",
     os.path.join(os.path.dirname(pretty_midi.__file__), "TimGM6mb.sf2"),
 ]
-SOUNDFONT_PATH = next(p for p in _SOUNDFONT_CANDIDATES if os.path.exists(p))
+SOUNDFONT_PATH = next((p for p in _SOUNDFONT_CANDIDATES if p and os.path.exists(p)), None)
 SAMPLE_RATE = 44100
 
 
@@ -20,6 +21,8 @@ def synthesize_to_wav(midi_obj: pretty_midi.PrettyMIDI) -> str:
 
     Returns the path to the WAV file (caller is responsible for cleanup).
     """
+    if SOUNDFONT_PATH is None:
+        pytest.skip("Aucune soundfont trouvée (définir SOUNDFONT_PATH)")
     audio = midi_obj.fluidsynth(fs=SAMPLE_RATE, sf2_path=SOUNDFONT_PATH)
     # Normalize to prevent clipping
     peak = np.max(np.abs(audio))

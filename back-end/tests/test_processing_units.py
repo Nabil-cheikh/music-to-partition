@@ -1,6 +1,6 @@
-"""Unit tests for the pure post-processing functions in core.processing."""
+"""Unit tests for the pure post-processing functions in core.quantization."""
 
-from core.processing import (
+from core.quantization import (
     _quantize_to_nearest,
     _quantize_time,
     _seconds_to_quarter_length,

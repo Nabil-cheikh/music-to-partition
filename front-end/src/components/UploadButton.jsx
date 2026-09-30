@@ -1,11 +1,16 @@
 import { useState } from "react";
 
-function UploadButton({ uploadedFile, setUploadedFile }) {
+function UploadButton({ setUploadedFile }) {
   const [isDragging, setIsDragging] = useState(false);
   const [isInvalidFile, setIsInvalidFile] = useState(false);
 
   const isValidAudioType = (type) => {
-    const validTypes = ['audio/wav', 'audio/mpeg', 'audio/mp3', 'audio/x-wav'];
+    const validTypes = [
+      'audio/wav', 'audio/x-wav', 'audio/wave',
+      'audio/mpeg', 'audio/mp3',
+      'audio/aac', 'audio/x-aac',
+      'audio/mp4', 'audio/x-m4a', 'audio/m4a',
+    ];
     return validTypes.includes(type);
   }
 
@@ -76,7 +81,7 @@ function UploadButton({ uploadedFile, setUploadedFile }) {
           id="fileInput"
           onChange={handleFileInput}
           className="hidden"
-          accept="audio/*,.wav,.mp3"
+          accept=".wav,.mp3,.aac,.m4a"
         />
         <label
           htmlFor="fileInput"
@@ -98,7 +103,7 @@ function UploadButton({ uploadedFile, setUploadedFile }) {
               </p>
             </div>
             <div className="text-xs text-gray-400">
-              Formats acceptés: WAV, MP3
+              Formats acceptés: WAV, MP3, AAC, M4A
             </div>
           </div>
         </label>

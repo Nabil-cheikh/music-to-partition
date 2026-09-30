@@ -1,0 +1,148 @@
+{
+  "measured_on": "2026-09-27",
+  "tolerance": 0.01,
+  "note": "Initial baseline (ADR-0005). Update only with user approval; see docs/testing.md.",
+  "backend": "transkun",
+  "soundfont": "TimGM6mb.sf2",
+  "duration_s": 109.8,
+  "scenarios": {
+    "scale_with_accompaniment": {
+      "n_expected": 16,
+      "n_detected": 16,
+      "onset_precision": 1.0,
+      "onset_recall": 1.0,
+      "onset_f1": 1.0,
+      "onset_offset_f1": 0.5625,
+      "score_onset_f1": 1.0,
+      "score_duration": 0.875,
+      "bpm_detected": 120.0,
+      "tempo_scale": 1.0
+    },
+    "hand_offset": {
+      "n_expected": 15,
+      "n_detected": 16,
+      "onset_precision": 0.9375,
+      "onset_recall": 1.0,
+      "onset_f1": 0.9677,
+      "onset_offset_f1": 0.3871,
+      "score_onset_f1": 0.9677,
+      "score_duration": 1.0,
+      "bpm_detected": 119.8,
+      "tempo_scale": 1.0
+    },
+    "chord_rh_moving_lh": {
+      "n_expected": 7,
+      "n_detected": 7,
+      "onset_precision": 1.0,
+      "onset_recall": 1.0,
+      "onset_f1": 1.0,
+      "onset_offset_f1": 0.8571,
+      "score_onset_f1": 1.0,
+      "score_duration": 0.8571,
+      "bpm_detected": 120.2,
+      "tempo_scale": 1.0
+    },
+    "chord_lh_moving_rh": {
+      "n_expected": 7,
+      "n_detected": 7,
+      "onset_precision": 1.0,
+      "onset_recall": 1.0,
+      "onset_f1": 1.0,
+      "onset_offset_f1": 1.0,
+      "score_onset_f1": 1.0,
+      "score_duration": 1.0,
+      "bpm_detected": 119.1,
+      "tempo_scale": 1.0
+    },
+    "mixed_durations_same_pitch": {
+      "n_expected": 24,
+      "n_detected": 24,
+      "onset_precision": 1.0,
+      "onset_recall": 1.0,
+      "onset_f1": 1.0,
+      "onset_offset_f1": 0.125,
+      "score_onset_f1": 1.0,
+      "score_duration": 1.0,
+      "bpm_detected": 120.0,
+      "tempo_scale": 1.0
+    },
+    "held_bass_moving_melody": {
+      "n_expected": 18,
+      "n_detected": 18,
+      "onset_precision": 1.0,
+      "onset_recall": 1.0,
+      "onset_f1": 1.0,
+      "onset_offset_f1": 1.0,
+      "score_onset_f1": 1.0,
+      "score_duration": 1.0,
+      "bpm_detected": 99.8,
+      "tempo_scale": 1.0
+    },
+    "chord_with_different_durations": {
+      "n_expected": 7,
+      "n_detected": 8,
+      "onset_precision": 0.875,
+      "onset_recall": 1.0,
+      "onset_f1": 0.9333,
+      "onset_offset_f1": 0.6667,
+      "score_onset_f1": 0.9333,
+      "score_duration": 0.8571,
+      "bpm_detected": 89.1,
+      "tempo_scale": 1.0
+    },
+    "triplets_over_quarters": {
+      "n_expected": 16,
+      "n_detected": 16,
+      "onset_precision": 1.0,
+      "onset_recall": 1.0,
+      "onset_f1": 1.0,
+      "onset_offset_f1": 0.75,
+      "score_onset_f1": 0.125,
+      "score_duration": 0.0,
+      "bpm_detected": 134.7,
+      "tempo_scale": 2.0
+    },
+    "sixteenth_run": {
+      "n_expected": 18,
+      "n_detected": 18,
+      "onset_precision": 1.0,
+      "onset_recall": 1.0,
+      "onset_f1": 1.0,
+      "onset_offset_f1": 0.9444,
+      "score_onset_f1": 1.0,
+      "score_duration": 0.9444,
+      "bpm_detected": 99.4,
+      "tempo_scale": 1.0
+    },
+    "dotted_rhythm": {
+      "n_expected": 8,
+      "n_detected": 8,
+      "onset_precision": 1.0,
+      "onset_recall": 1.0,
+      "onset_f1": 1.0,
+      "onset_offset_f1": 1.0,
+      "score_onset_f1": 1.0,
+      "score_duration": 1.0,
+      "bpm_detected": 109.2,
+      "tempo_scale": 1.0
+    },
+    "wide_chords_both_hands": {
+      "n_expected": 16,
+      "n_detected": 14,
+      "onset_precision": 1.0,
+      "onset_recall": 0.875,
+      "onset_f1": 0.9333,
+      "onset_offset_f1": 0.4667,
+      "score_onset_f1": 0.9333,
+      "score_duration": 0.5,
+      "bpm_detected": 80.7,
+      "tempo_scale": 1.0
+    }
+  },
+  "mean": {
+    "onset_f1": 0.9849,
+    "onset_offset_f1": 0.7054,
+    "score_onset_f1": 0.9054,
+    "score_duration": 0.8212
+  }
+}

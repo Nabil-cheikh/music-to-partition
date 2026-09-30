@@ -1,100 +1,72 @@
+# Orchestration : audio -> transcription (backend) -> tempo -> quantification.
 import librosa as lr
-from transformers import Pop2PianoForConditionalGeneration, Pop2PianoProcessor
+import numpy as np
 
-# Load model and processor once at module level
-_model = Pop2PianoForConditionalGeneration.from_pretrained("sweetcocoa/pop2piano")
-_processor = Pop2PianoProcessor.from_pretrained("sweetcocoa/pop2piano")
+from core.quantization import TempoMap, choose_bpm, clean_notes, quantize_notes
+from core.transcription import RawNote, get_backend
 
-VALID_DURATIONS = [4.0, 3.0, 2.0, 1.5, 1.0, 0.5, 0.25]
-MIN_QUARTER_LENGTH = 0.25
-
-
-def _quantize_to_nearest(value: float, grid: list) -> float:
-    """Arrondit une durée à la valeur musicale la plus proche"""
-    if value <= 0:
-        return grid[-1]
-    return min(grid, key=lambda d: abs(d - value))
+ENVELOPE_SR, ENVELOPE_HOP = 22050, 256
+TEMPO_TOLERANCE = 0.02  # écart relatif pour réutiliser les beats d'un tracker
 
 
-def _quantize_time(raw_time: float, grid_resolution: float = 0.5) -> float:
-    """
-    Quantifie le temps sur une grille musicale.
-    grid_resolution = 0.5 pour des croches, 0.25 pour des doubles croches
-    """
-    return round(raw_time / grid_resolution) * grid_resolution
-
-
-def _seconds_to_quarter_length(seconds: float, bpm: int) -> float:
-    return seconds * (bpm / 60)
-
-
-def _deduplicate_notes(notes: list) -> list:
-    """
-    Supprime les doublons : si plusieurs notes ont le même time et pitch,
-    on garde celle avec la plus haute vélocité.
-    """
-    best_notes = {}
+def _onset_envelope(notes: list[RawNote]) -> np.ndarray:
+    """Enveloppe d'onsets synthétique construite à partir des notes transcrites."""
+    frames = int((max(n.onset for n in notes) + 2) * ENVELOPE_SR / ENVELOPE_HOP)
+    env = np.zeros(frames)
     for n in notes:
-        key = (n["time"], n["note"])
-        if key not in best_notes or n["velocity"] > best_notes[key]["velocity"]:
-            best_notes[key] = n
-    return list(best_notes.values())
+        env[int(round(n.onset * ENVELOPE_SR / ENVELOPE_HOP))] += n.velocity
+    return np.convolve(env, np.hanning(5), mode="same")
 
 
-def recognize_notes_structured(file_path: str):
-    """Analyze audio file using Pop2Piano and return structured note data with BPM.
+def _track(**kwargs) -> tuple[float, np.ndarray]:
+    tempo, frames = lr.beat.beat_track(**kwargs)
+    sr, hop = kwargs.get("sr", 22050), kwargs.get("hop_length", 512)
+    return float(np.atleast_1d(tempo)[0]), lr.frames_to_time(frames, sr=sr, hop_length=hop)
+
+
+def estimate_tempo(file_path: str, notes: list[RawNote]) -> tuple[TempoMap, int]:
+    """Tempo à partir de deux beat trackers (audio, onsets transcrits) ; le candidat retenu
+    est celui qui aligne le mieux les onsets (voir core.quantization.choose_bpm).
+    Le premier onset est ancré sur un temps. Retourne aussi le sample rate natif."""
+    y, sr = lr.load(file_path, sr=None)
+    trackers = [_track(y=y, sr=sr)]
+    if len(notes) >= 2:
+        trackers.append(_track(onset_envelope=_onset_envelope(notes), sr=ENVELOPE_SR, hop_length=ENVELOPE_HOP))
+
+    # mêmes notes que la quantification : un fantôme supprimé ne doit pas servir d'ancre
+    onsets = sorted({round(n.onset, 3) for n in clean_notes(notes)})
+    first = onsets[0] if onsets else None
+    bpm = choose_bpm(onsets, [t for t, _ in trackers])
+    if bpm is None:
+        return TempoMap(trackers[0][1], fallback_bpm=trackers[0][0] or 120.0, anchor=first), int(sr)
+    for tracker_bpm, beat_times in trackers:
+        if abs(tracker_bpm / bpm - 1) < TEMPO_TOLERANCE and len(beat_times) >= 2:
+            return TempoMap(beat_times, fallback_bpm=bpm, anchor=first), int(sr)
+    return TempoMap.steady(bpm, anchor=first), int(sr)
+
+
+def transcribe_raw(file_path: str, backend: str | None = None) -> list[RawNote]:
+    """Couche transcription seule : notes en secondes, non quantifiées."""
+    return get_backend(backend).transcribe(file_path)
+
+
+def recognize_notes_structured(file_path: str, backend: str | None = None) -> dict:
+    """Analyse un fichier audio et retourne les notes quantifiées (RecognizeNotesResponse).
 
     Returns:
         dict: {
             'bpm': int,
-            'offset': float,
-            'notes': list of dicts with time, note, duration, and velocity
+            'offset': float,   # secondes : position du temps 0 de la partition
+            'notes': list of dicts with time, note, duration, velocity (en noires)
             'sample_rate': int
         }
     """
-    # BPM detection with librosa
-    y, sr = lr.load(file_path, sr=None)
-    tempo, beat_frames = lr.beat.beat_track(y=y, sr=sr)
-    bpm = int(tempo)
-    offset = lr.frames_to_time(beat_frames[0], sr=sr) if len(beat_frames) > 0 else 0.0
-
-    # Pop2Piano inference (needs 44100 Hz)
-    audio_44k, _ = lr.load(file_path, sr=44100)
-    inputs = _processor(audio=audio_44k, sampling_rate=44100, return_tensors="pt")
-    model_output = _model.generate(
-        input_features=inputs["input_features"],
-        composer="composer1",
-    )
-    decoded = _processor.batch_decode(
-        token_ids=model_output,
-        feature_extractor_output=inputs,
-    )
-    midi_obj = decoded["pretty_midi_objects"][0]
-
-    # Extract notes from the MIDI object
-    notes_list = []
-    for instr in midi_obj.instruments:
-        for n in instr.notes:
-            duration_sec = n.end - n.start
-            aligned_start = max(0, n.start - offset)
-
-            raw_offset = _seconds_to_quarter_length(aligned_start, bpm)
-            raw_quarter_length = _seconds_to_quarter_length(duration_sec, bpm)
-
-            notes_list.append({
-                "time": _quantize_time(raw_offset, 0.5),
-                "note": lr.midi_to_note(n.pitch, unicode=False),
-                "duration": _quantize_to_nearest(raw_quarter_length, VALID_DURATIONS),
-                "velocity": n.velocity / 127.0,
-            })
-
-    notes_list = [n for n in notes_list if n["duration"] >= MIN_QUARTER_LENGTH]
-    notes_list = _deduplicate_notes(notes_list)
-    notes_list.sort(key=lambda n: (n["time"], n["note"]))
-
+    raw = transcribe_raw(file_path, backend)
+    tempo, sr = estimate_tempo(file_path, raw)
+    notes = quantize_notes(raw, tempo)
     return {
-        "bpm": bpm,
-        "offset": float(offset),
-        "notes": notes_list,
-        "sample_rate": int(sr),
+        "bpm": int(round(tempo.bpm)),
+        "offset": float(min((n.onset for n in raw), default=0.0)),
+        "notes": notes,
+        "sample_rate": sr,
     }

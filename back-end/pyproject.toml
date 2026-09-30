@@ -9,24 +9,32 @@ dependencies = [
     "librosa",
     "python-multipart",
     "music21",
-    "transformers",
     "torch",
-    "pretty-midi==0.2.9",
-    "essentia",
-    "scipy",
-    "resampy",
-    "pyfluidsynth",
+    "transkun>=2.0.1",
+]
+
+[dependency-groups]
+dev = [
     "pytest",
+    "httpx",
+    "pyfluidsynth",
+    "pretty-midi",
+    "scipy",
+    "mir-eval>=0.8.2",
+]
+# Ancien backend (ADR-0001, remplacé par ADR-0005) : uv sync --group pop2piano
+pop2piano = [
+    "transformers",
+    "essentia",
+    "resampy",
 ]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
+markers = ["slow: runs the transcription model (tests/test_transcription_eval.py, tests/test_transcription.py)"]
 
 [tool.uv]
 environments = [
     "sys_platform == 'darwin'",
     "sys_platform == 'linux'",
-]
-constraint-dependencies = [
-    "setuptools<82",
 ]

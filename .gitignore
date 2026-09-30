@@ -1,7 +1,7 @@
 front-end/node_modules
 front-end/data
 front-end/.DS_Store
-front-end/package-lock.json
+front-end/.env
 
 # Back-end
 back-end/.env
@@ -9,8 +9,9 @@ back-end/notebook.ipynb
 back-end/**/__pycache__
 back-end/outputs
 back-end/.venv
+back-end/.pytest_cache
 
 
 .DS_Store
 .vscode
-scripts
+/scripts/

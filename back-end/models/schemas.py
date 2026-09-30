@@ -1,26 +1,26 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing import List
 
 
 class NoteSegment(BaseModel):
     """A detected note segment with timing and duration"""
-    time: float = Field(..., description="Timestamp en secondes (relatif au début du fichier)")
+    time: float = Field(..., description="Position en noires depuis le début de la partition (quantifiée)")
     note: str = Field(..., description="Nom de la note (ex: 'A4', 'C#3', 'Bb2')")
-    duration: float = Field(..., description="Durée de la note en secondes")
-    velocity: float = Field(..., description="Intensité du volume de la note")
+    duration: float = Field(..., description="Durée de la note en noires (quantifiée)")
+    velocity: float = Field(..., description="Intensité normalisée (0-1)")
 
 
 class RecognizeNotesResponse(BaseModel):
     """Response schema for recognize_notes endpoint"""
     bpm: int = Field(..., description="Tempo en battements par minute")
-    offset: float = Field(..., description="Décalage temporel du premier beat (en secondes)")
+    offset: float = Field(..., description="Instant (en secondes) de la première note, qui correspond au temps 0 de la partition")
     notes: List[NoteSegment] = Field(..., description="Liste des segments de notes détectés avec leur durée")
     sample_rate: int = Field(..., description="Taux d'échantillonnage audio en Hz")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
-                "bpm": 120.0,
+                "bpm": 120,
                 "offset": 0.23,
                 "notes": [
                     {"time": 0.22, "note": "C5", "duration": 0.5, "velocity": 0.68},
@@ -31,3 +31,4 @@ class RecognizeNotesResponse(BaseModel):
                 "sample_rate": 44100,
             }
         }
+    )

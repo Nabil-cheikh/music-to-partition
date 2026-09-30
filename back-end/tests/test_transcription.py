@@ -8,6 +8,8 @@ from tests.conftest import (
     assert_duration_near,
 )
 
+pytestmark = pytest.mark.slow
+
 # MIDI note numbers for convenience
 C2, E2, G2 = 36, 40, 43
 C3, D3, E3, F3, G3, A3, B3 = 48, 50, 52, 53, 55, 57, 59

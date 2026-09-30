@@ -1,5 +1,6 @@
 import os
 import shutil
+import tempfile
 from fastapi import APIRouter, File, UploadFile, HTTPException
 from fastapi.responses import FileResponse
 from starlette.background import BackgroundTask
@@ -9,17 +10,18 @@ from models.schemas import RecognizeNotesResponse
 
 router = APIRouter()
 
-# Dossier de stockage des uploads (à créer si non existant)
-UPLOAD_DIR = "uploads"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+ALLOWED_EXTENSIONS = (".wav", ".mp3", ".aac", ".m4a")
 
-def right_extension(file: UploadFile):
-    if not file.filename.endswith((".wav", ".mp3", ".aac", ".m4a")):
+
+def right_extension(file: UploadFile) -> str:
+    extension = os.path.splitext(file.filename or "")[1].lower()
+    if extension not in ALLOWED_EXTENSIONS:
         raise HTTPException(status_code=400, detail="Format de fichier invalide. Seuls les fichiers WAV, MP3, AAC et M4A sont acceptés.")
+    return extension
 
 
 @router.post("/recognize-notes/", response_model=RecognizeNotesResponse)
-async def recognize_notes_endpoint(file: UploadFile = File(...)):
+def recognize_notes_endpoint(file: UploadFile = File(...)):
     """
     Endpoint pour reconnaître les notes d'un fichier audio avec leur durée.
 
@@ -27,27 +29,28 @@ async def recognize_notes_endpoint(file: UploadFile = File(...)):
     - Le tempo (BPM)
     - L'offset du premier beat
     - Une liste de segments de notes avec :
-      * frame : position dans l'analyse
-      * time : timestamp en secondes
+      * time : position en noires (quantifiée)
       * note : nom de la note (ex: "A4", "C#3")
-      * duration : durée de la note en secondes
+      * duration : durée de la note en noires
+      * velocity : intensité normalisée (0-1)
 
     La durée permet de différencier une note blanche (longue) d'une note noire
     suivie d'un silence.
     """
-    right_extension(file)
+    extension = right_extension(file)
 
-    file_path = os.path.join(UPLOAD_DIR, file.filename)
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-
-    result = recognize_notes_structured(file_path)
-
-    return result
+    # Fichier temporaire : nom non contrôlé par le client, supprimé après analyse
+    fd, file_path = tempfile.mkstemp(suffix=extension)
+    try:
+        with os.fdopen(fd, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        return recognize_notes_structured(file_path)
+    finally:
+        os.remove(file_path)
 
 
 @router.post("/generate-sheet/")
-async def generate_sheet_endpoint(data: RecognizeNotesResponse):
+def generate_sheet_endpoint(data: RecognizeNotesResponse):
     """Génère une partition PDF à partir des notes détectées"""
     notes_as_dicts = [n.model_dump() for n in data.notes]
     output_path = generate_piano_sheet(notes_as_dicts, data.bpm)
